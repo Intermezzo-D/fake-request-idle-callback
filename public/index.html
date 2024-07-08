@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div id="root"></div>
+    <script>
+        const sleep = (delay) => {
+            const start = Date.now()
+            while (Date.now() < start + delay){
+
+            }
+        }
+
+        const works = [
+            () => {
+                console.log("work 1")
+                sleep(20)
+            },
+            () => {
+                console.log("work 2")
+                sleep(20)
+            },
+            () => {
+                console.log("work 3")
+                sleep(20)
+            },
+            () => {
+                console.log("work 4")
+                sleep(20)
+            },
+            () => {
+                console.log("work 5")
+                sleep(20)
+            },
+        ]
+
+        function performUnitOfWork() {
+            let work = works.shift()
+            work()
+        }
+
+        function progress(deadline) {
+            console.log("Time remaining: ", deadline.timeRemaining())
+            if (deadline.timeRemaining() > 0 && works.length > 0) {
+                performUnitOfWork()
+            }
+            if (works.length > 0) {
+                fakeRequestIdleCallback(progress)
+            }
+        }
+
+
+        const activeTimePerFrame = 1000 / 60 // 16ms per frame
+        let deadFrameTime // end time of one frame
+        let pendingCallback
+        let timeRemaining = () => deadFrameTime - performance.now()
+
+        let channel = new MessageChannel()
+        channel.port2.onmessage = function() {
+            console.log("Message from port 1 received")
+            let currentTime = performance.now()
+            const didTimeOut = currentTime >= deadFrameTime
+            if (pendingCallback) {
+                pendingCallback({ didTimeOut, timeRemaining })
+            }
+        }
+
+        function fakeRequestIdleCallback(callback, option) {
+            window.requestAnimationFrame((rafTime) => {
+                console.log(rafTime) // rafTime: indicating the end time of the previous frame's rendering
+                deadFrameTime = rafTime + activeTimePerFrame
+                pendingCallback = callback
+                channel.port1.postMessage("ping")
+            })
+        }
+
+        fakeRequestIdleCallback(progress)
+    </script>
+</body>
+</html>
